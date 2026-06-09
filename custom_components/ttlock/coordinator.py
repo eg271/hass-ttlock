@@ -18,10 +18,25 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt
 
 from .api import TTLockApi
-from .const import DOMAIN, SIGNAL_NEW_DATA, TT_LOCKS
-from .models import Features, PassageModeConfig, Passcode, SensorState, State, WebhookEvent
+from .const import DOMAIN, PASSCODES_HIDDEN_NAMES_PERMANENT, SIGNAL_NEW_DATA, TT_LOCKS
+from .models import (
+    Features,
+    PassageModeConfig,
+    Passcode,
+    PasscodeType,
+    SensorState,
+    State,
+    WebhookEvent,
+)
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _is_hidden_passcode(code: Passcode) -> bool:
+    """Return True if a passcode should not appear on the passcodes sensor."""
+    if not code.name or code.type != PasscodeType.permanent:
+        return False
+    return code.name.strip().lower() in PASSCODES_HIDDEN_NAMES_PERMANENT
 
 
 def serialize_passcodes(codes: list[Passcode]) -> list[dict[str, Any]]:
@@ -37,6 +52,7 @@ def serialize_passcodes(codes: list[Passcode]) -> list[dict[str, Any]]:
             "expired": code.expired,
         }
         for code in codes
+        if not _is_hidden_passcode(code)
     ]
 
 

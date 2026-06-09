@@ -27,3 +27,6 @@ SVC_CLEANUP_PASSCODES = "cleanup_passcodes"
 SVC_LIST_PASSCODES = "list_passcodes"
 SVC_LIST_RECORDS = "list_records"
 SVC_UPDATE_STATE = "update_state"
+
+# Permanent passcode names hidden from the passcodes sensor (case-insensitive).
+PASSCODES_HIDDEN_NAMES_PERMANENT = frozenset({"maria"})
