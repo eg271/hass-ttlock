@@ -296,6 +296,7 @@ class Services:
 
         for _entity_id, coordinator in self._get_coordinators(call).items():
             await coordinator.api.add_passcode(coordinator.lock_id, config)
+            await coordinator.async_refresh()
 
     async def handle_modify_passcode(self, call: ServiceCall):
         """Modify an existing passcode for the given entities."""
@@ -335,6 +336,7 @@ class Services:
 
         for _entity_id, coordinator in self._get_coordinators(call).items():
             await coordinator.api.delete_passcode(coordinator.lock_id, passcode_id)
+            await coordinator.async_refresh()
 
     async def handle_cleanup_passcodes(self, call: ServiceCall) -> ServiceResponse:
         """Clean up expired passcodes for the given entities."""
@@ -351,6 +353,7 @@ class Services:
                         removed_for_lock.append(code.name)
             if removed_for_lock:
                 removed[entity_id] = removed_for_lock
+            await coordinator.async_refresh()
 
         return {"removed": removed}
 

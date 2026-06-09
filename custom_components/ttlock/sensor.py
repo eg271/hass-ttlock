@@ -1,4 +1,4 @@
-"""Support for iCloud sensors."""
+"""Support for TTLock sensors."""
 
 from __future__ import annotations
 
@@ -32,6 +32,7 @@ async def async_setup_entry(
                 LockBattery(coordinator),
                 LockOperator(coordinator),
                 LockTrigger(coordinator),
+                LockPasscodes(coordinator),
                 SensorBattery(coordinator)
                 if sensor_present(coordinator.data.sensor)
                 else None,
@@ -95,6 +96,17 @@ class LockTrigger(BaseLockEntity, RestoreEntity, SensorEntity):
             return
 
         self._attr_native_value = last_state.state
+
+
+class LockPasscodes(BaseLockEntity, SensorEntity):
+    """Representation of a lock's passcodes."""
+
+    def _update_from_coordinator(self) -> None:
+        """Fetch passcode list from coordinator data."""
+        self._attr_name = f"{self.coordinator.data.name} Passcodes"
+        passcodes = self.coordinator.data.passcodes
+        self._attr_native_value = len(passcodes)
+        self._attr_extra_state_attributes = {"passcodes": passcodes}
 
 
 class SensorBattery(BaseLockEntity, SensorEntity):

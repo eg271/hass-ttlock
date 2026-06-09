@@ -5,10 +5,10 @@ from __future__ import annotations
 import asyncio
 from contextlib import contextmanager
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 import logging
-from typing import TypeGuard
+from typing import Any, TypeGuard
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -19,9 +19,25 @@ from homeassistant.util import dt
 
 from .api import TTLockApi
 from .const import DOMAIN, SIGNAL_NEW_DATA, TT_LOCKS
-from .models import Features, PassageModeConfig, SensorState, State, WebhookEvent
+from .models import Features, PassageModeConfig, Passcode, SensorState, State, WebhookEvent
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def serialize_passcodes(codes: list[Passcode]) -> list[dict[str, Any]]:
+    """Convert passcodes to a JSON-friendly structure for entity state."""
+    return [
+        {
+            "name": code.name,
+            "id": code.id,
+            "passcode": code.passcode,
+            "type": code.type.name if code.type is not None else None,
+            "start_date": code.start_date.isoformat() if code.start_date else None,
+            "end_date": code.end_date.isoformat() if code.end_date else None,
+            "expired": code.expired,
+        }
+        for code in codes
+    ]
 
 
 @dataclass
@@ -57,6 +73,7 @@ class LockState:
     sensor: SensorData | None = None
     auto_lock_seconds: int | None = None
     passage_mode_config: PassageModeConfig | None = None
+    passcodes: list[dict[str, Any]] = field(default_factory=list)
 
     def passage_mode_active(self, current_date: datetime = dt.now()) -> bool:
         """Check if passage mode is currently active."""
@@ -199,6 +216,14 @@ class LockUpdateCoordinator(DataUpdateCoordinator[LockState]):
             new_data.passage_mode_config = await self.api.get_lock_passage_mode_config(
                 self.lock_id
             )
+
+            try:
+                codes = await self.api.list_passcodes(self.lock_id)
+                new_data.passcodes = serialize_passcodes(codes)
+            except Exception as err:
+                _LOGGER.warning(
+                    "Failed to fetch passcodes for lock %s: %s", self.lock_id, err
+                )
 
             return new_data
         except Exception as err:
